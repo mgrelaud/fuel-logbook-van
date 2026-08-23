@@ -139,9 +139,11 @@ function App() {
   });
 
   const totaux = computeTotaux(pleins);
-  const dernier = pleins[0];
-  const consoDernier = dernier ? litresPer100(Number(dernier.litres), Number(dernier.km)) : null;
-  const delta = consoDernier != null && totaux.moyenne != null ? consoDernier - totaux.moyenne : null;
+  const blocsClos = computeBlocs(pleins).filter((b) => b.cloture);
+  const dernierBloc = blocsClos[blocsClos.length - 1];
+  const consoDernier = dernierBloc?.conso ?? null;
+  const delta =
+    consoDernier != null && totaux.moyenne != null ? consoDernier - totaux.moyenne : null;
 
   return (
     <main className="min-h-screen px-4 pb-32 safe-top safe-bottom">
