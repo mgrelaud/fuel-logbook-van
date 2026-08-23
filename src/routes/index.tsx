@@ -254,12 +254,13 @@ function App() {
       <PleinSheet
         open={sheetOpen}
         initial={editing}
-        saving={save.isPending}
+        saving={save.isPending || remove.isPending}
         onClose={() => {
           setSheetOpen(false);
           setEditing(null);
         }}
         onSubmit={(v) => save.mutate(v)}
+        onDelete={(p) => remove.mutate(p)}
       />
     </main>
   );
