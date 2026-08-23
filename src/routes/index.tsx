@@ -177,14 +177,25 @@ function App() {
         <p className="mt-1 text-sm text-muted-foreground">L/100 km</p>
       </section>
 
-      {dernier && consoDernier != null && (
+      {totaux.litresEnAttente > 0 && (
+        <p className="num mt-2 text-center text-xs text-muted-foreground">
+          {nf(totaux.litresEnAttente, 1)} L en attente de distance
+        </p>
+      )}
+
+      {consoDernier != null && (
         <section className="card-surface mt-3 flex items-center justify-between p-5">
           <div>
             <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-              Dernier plein
+              Dernier bloc clôturé
             </p>
-            <p className="mt-1 text-3xl font-bold num">{nf(consoDernier)}</p>
-            <p className="text-xs text-muted-foreground">L/100 km</p>
+            <p className="num mt-1 text-3xl font-bold">{nf(consoDernier)}</p>
+            <p className="text-xs text-muted-foreground">
+              L/100 km
+              {dernierBloc && dernierBloc.pleins.length > 1
+                ? ` · ${dernierBloc.pleins.length} pleins`
+                : ""}
+            </p>
           </div>
           {delta != null && (
             <div
