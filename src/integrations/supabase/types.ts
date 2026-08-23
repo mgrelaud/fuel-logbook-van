@@ -20,7 +20,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
-          km: number
+          km: number | null
           litres: number
           user_id: string
         }
@@ -29,7 +29,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
-          km: number
+          km?: number | null
           litres: number
           user_id: string
         }
@@ -38,7 +38,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
-          km?: number
+          km?: number | null
           litres?: number
           user_id?: string
         }
