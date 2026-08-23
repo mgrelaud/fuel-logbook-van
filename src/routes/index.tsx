@@ -133,6 +133,8 @@ function App() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pleins"] });
+      setSheetOpen(false);
+      setEditing(null);
       toast.success("Plein supprimé");
     },
     onError: () => toast.error("Suppression impossible."),
