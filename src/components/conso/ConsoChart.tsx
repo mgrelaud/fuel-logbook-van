@@ -1,18 +1,18 @@
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatDate, litresPer100, nf, type Plein } from "@/lib/conso";
+import { computeBlocs, formatDate, nf, type Plein } from "@/lib/conso";
 
 export function ConsoChart({ pleins }: { pleins: Plein[] }) {
-  const data = [...pleins]
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((p) => ({
-      date: formatDate(p.date),
-      conso: Number(litresPer100(Number(p.litres), Number(p.km)).toFixed(2)),
+  const data = computeBlocs(pleins)
+    .filter((b) => b.cloture && b.conso != null)
+    .map((b) => ({
+      date: formatDate(b.pleins[b.pleins.length - 1]!.date),
+      conso: Number((b.conso as number).toFixed(2)),
     }));
 
   if (data.length < 2) {
     return (
       <div className="card-surface p-5 text-sm text-muted-foreground">
-        Ajoutez au moins deux pleins pour voir l'évolution.
+        Ajoutez au moins deux pleins avec distance pour voir l'évolution.
       </div>
     );
   }

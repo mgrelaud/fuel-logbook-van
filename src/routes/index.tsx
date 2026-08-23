@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { computeTotaux, downloadCsv, litresPer100, nf, nf0, type Plein } from "@/lib/conso";
+import { computeBlocs, computeTotaux, downloadCsv, nf, nf0, type Plein } from "@/lib/conso";
 import { PleinSheet, type PleinInput } from "@/components/conso/PleinSheet";
 import { ConsoChart } from "@/components/conso/ConsoChart";
 import { Historique } from "@/components/conso/Historique";
@@ -133,15 +133,19 @@ function App() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pleins"] });
+      setSheetOpen(false);
+      setEditing(null);
       toast.success("Plein supprimé");
     },
     onError: () => toast.error("Suppression impossible."),
   });
 
   const totaux = computeTotaux(pleins);
-  const dernier = pleins[0];
-  const consoDernier = dernier ? litresPer100(Number(dernier.litres), Number(dernier.km)) : null;
-  const delta = consoDernier != null && totaux.moyenne != null ? consoDernier - totaux.moyenne : null;
+  const blocsClos = computeBlocs(pleins).filter((b) => b.cloture);
+  const dernierBloc = blocsClos[blocsClos.length - 1];
+  const consoDernier = dernierBloc?.conso ?? null;
+  const delta =
+    consoDernier != null && totaux.moyenne != null ? consoDernier - totaux.moyenne : null;
 
   return (
     <main className="min-h-screen px-4 pb-32 safe-top safe-bottom">
@@ -175,14 +179,25 @@ function App() {
         <p className="mt-1 text-sm text-muted-foreground">L/100 km</p>
       </section>
 
-      {dernier && consoDernier != null && (
+      {totaux.litresEnAttente > 0 && (
+        <p className="num mt-2 text-center text-xs text-muted-foreground">
+          {nf(totaux.litresEnAttente, 1)} L en attente de distance
+        </p>
+      )}
+
+      {consoDernier != null && (
         <section className="card-surface mt-3 flex items-center justify-between p-5">
           <div>
             <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase">
-              Dernier plein
+              Dernier bloc clôturé
             </p>
-            <p className="mt-1 text-3xl font-bold num">{nf(consoDernier)}</p>
-            <p className="text-xs text-muted-foreground">L/100 km</p>
+            <p className="num mt-1 text-3xl font-bold">{nf(consoDernier)}</p>
+            <p className="text-xs text-muted-foreground">
+              L/100 km
+              {dernierBloc && dernierBloc.pleins.length > 1
+                ? ` · ${dernierBloc.pleins.length} pleins`
+                : ""}
+            </p>
           </div>
           {delta != null && (
             <div
@@ -241,12 +256,13 @@ function App() {
       <PleinSheet
         open={sheetOpen}
         initial={editing}
-        saving={save.isPending}
+        saving={save.isPending || remove.isPending}
         onClose={() => {
           setSheetOpen(false);
           setEditing(null);
         }}
         onSubmit={(v) => save.mutate(v)}
+        onDelete={(p) => remove.mutate(p)}
       />
     </main>
   );
