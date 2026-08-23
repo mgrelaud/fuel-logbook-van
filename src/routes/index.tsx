@@ -7,7 +7,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { computeTotaux, downloadCsv, litresPer100, nf, nf0, type Plein } from "@/lib/conso";
+import { computeBlocs, computeTotaux, downloadCsv, nf, nf0, type Plein } from "@/lib/conso";
 import { PleinSheet, type PleinInput } from "@/components/conso/PleinSheet";
 import { ConsoChart } from "@/components/conso/ConsoChart";
 import { Historique } from "@/components/conso/Historique";
