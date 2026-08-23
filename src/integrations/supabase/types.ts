@@ -14,7 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      pleins: {
+        Row: {
+          cout: number | null
+          created_at: string
+          date: string
+          id: string
+          km: number
+          litres: number
+          user_id: string
+        }
+        Insert: {
+          cout?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          km: number
+          litres: number
+          user_id: string
+        }
+        Update: {
+          cout?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          km?: number
+          litres?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
