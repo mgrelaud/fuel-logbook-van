@@ -39,9 +39,13 @@ function EcranConnexion() {
   return (
     <main className="safe-top safe-bottom flex min-h-screen flex-col items-center justify-center gap-10 px-8">
       <div className="text-center">
-        <div className="mx-auto mb-6 flex size-20 items-center justify-center rounded-3xl bg-primary/12 text-4xl">
-          🛰️
-        </div>
+        <img
+          src="/icons/icon-512.png"
+          alt=""
+          width={88}
+          height={88}
+          className="mx-auto mb-6 size-22 rounded-[1.75rem]"
+        />
         <h1 className="text-4xl font-bold tracking-tight">Boîte noire</h1>
         <p className="mt-3 text-sm text-muted-foreground">
           L'enregistreur de ce que vous vivez : concerts, spectacles, et tout ce que vous y

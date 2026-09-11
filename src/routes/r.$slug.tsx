@@ -74,8 +74,8 @@ function PageRubrique() {
     let liste = toutes;
     if (statuts.length > 0) liste = liste.filter((f) => statuts.includes(f.statut));
     if (tagActif) liste = liste.filter((f) => f.tags.includes(tagActif));
-    return trier(chercher(liste, recherche), tri);
-  }, [toutes, statuts, tagActif, recherche, tri]);
+    return trier(chercher(liste, recherche, rubriques), tri);
+  }, [toutes, statuts, tagActif, recherche, tri, rubriques]);
 
   const vus = toutes.filter((f) => f.statut === "vu");
   const notees = toutes.filter((f) => f.note != null);
@@ -142,7 +142,7 @@ function PageRubrique() {
       <BarreRecherche
         valeur={recherche}
         onChange={setRecherche}
-        placeholder={`Chercher dans ${rubrique.nom.toLowerCase()}…`}
+        placeholder="Titre, lieu, tag, impressions, date…"
       />
 
       {filtresOuverts && (
@@ -239,6 +239,12 @@ function PageRubrique() {
           setFeuilleOuverte(true);
         }}
         onNoter={(f, note) => noter.mutate({ id: f.id, note })}
+        onSupprimer={(f) =>
+          supprimer.mutate(f.id, {
+            onSuccess: () => toast.success(`« ${f.titre} » supprimée`),
+            onError: () => toast.error("Suppression impossible."),
+          })
+        }
         vide={
           toutes.length === 0
             ? "Rubrique vide. Appuyez sur + pour votre première fiche."

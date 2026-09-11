@@ -49,8 +49,8 @@ function Accueil() {
   const [enEdition, setEnEdition] = useState<Fiche | null>(null);
 
   const resultats = useMemo(
-    () => (recherche.trim() ? trier(chercher(fiches, recherche), "date_desc") : []),
-    [fiches, recherche],
+    () => (recherche.trim() ? trier(chercher(fiches, recherche, rubriques), "date_desc") : []),
+    [fiches, recherche, rubriques],
   );
 
   const aujourdhui = new Date().toISOString().slice(0, 10);
@@ -73,6 +73,13 @@ function Accueil() {
 
   const vus = fiches.filter((f) => f.statut === "vu");
   const depense = vus.reduce((s, f) => s + Number(f.prix ?? 0), 0);
+
+  function supprimerFiche(f: Fiche) {
+    supprimer.mutate(f.id, {
+      onSuccess: () => toast.success(`« ${f.titre} » supprimée`),
+      onError: () => toast.error("Suppression impossible."),
+    });
+  }
 
   function ouvrirNouvelle() {
     setEnEdition(null);
@@ -100,7 +107,7 @@ function Accueil() {
       <BarreRecherche
         valeur={recherche}
         onChange={setRecherche}
-        placeholder="Chercher dans tout l'historique…"
+        placeholder="Titre, lieu, tag, rubrique, date…"
       />
 
       {recherche.trim() ? (
@@ -114,6 +121,7 @@ function Accueil() {
             montrerRubrique
             onOuvrir={ouvrir}
             onNoter={(f, note) => noter.mutate({ id: f.id, note })}
+            onSupprimer={supprimerFiche}
             vide="Rien ne correspond à cette recherche."
           />
         </section>
@@ -187,6 +195,7 @@ function Accueil() {
                 montrerRubrique
                 onOuvrir={ouvrir}
                 onNoter={(f, note) => noter.mutate({ id: f.id, note })}
+                onSupprimer={supprimerFiche}
                 vide="Rien de prévu."
               />
             </section>
@@ -203,6 +212,7 @@ function Accueil() {
                 montrerRubrique
                 onOuvrir={ouvrir}
                 onNoter={(f, note) => noter.mutate({ id: f.id, note })}
+                onSupprimer={supprimerFiche}
                 vide="Rien encore."
               />
             </section>

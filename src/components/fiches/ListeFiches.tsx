@@ -1,3 +1,6 @@
+import { useState } from "react";
+
+import { LigneGlissable } from "@/components/fiches/LigneGlissable";
 import { Note } from "@/components/fiches/Note";
 import { Icone } from "@/components/layout/Icone";
 import {
@@ -17,6 +20,7 @@ export function ListeFiches({
   montrerRubrique = false,
   onOuvrir,
   onNoter,
+  onSupprimer,
   vide,
 }: {
   fiches: Fiche[];
@@ -24,8 +28,12 @@ export function ListeFiches({
   montrerRubrique?: boolean;
   onOuvrir: (f: Fiche) => void;
   onNoter: (f: Fiche, note: number | null) => void;
+  onSupprimer: (f: Fiche) => void;
   vide: React.ReactNode;
 }) {
+  // Une seule ligne ouverte à la fois : en ouvrir une referme la précédente.
+  const [ligneOuverte, setLigneOuverte] = useState<string | null>(null);
+
   if (fiches.length === 0) {
     return <div className="card-surface p-6 text-center text-sm text-muted-foreground">{vide}</div>;
   }
@@ -46,7 +54,16 @@ export function ListeFiches({
               const avecIcone = montrerRubrique && rubrique !== undefined;
 
               return (
-                <li key={f.id} className="card-surface p-4">
+                <LigneGlissable
+                  key={f.id}
+                  ouverte={ligneOuverte === f.id}
+                  onOuverture={(ouverte) => setLigneOuverte(ouverte ? f.id : null)}
+                  onSupprimer={() => {
+                    setLigneOuverte(null);
+                    onSupprimer(f);
+                  }}
+                  etiquette={f.titre}
+                >
                   {/* La zone d'ouverture et la notation sont deux contrôles
                       voisins : imbriquer des boutons donnerait du HTML invalide
                       et rendrait les étoiles inutilisables. */}
@@ -112,7 +129,7 @@ export function ListeFiches({
                       </span>
                     ))}
                   </div>
-                </li>
+                </LigneGlissable>
               );
             })}
           </ul>

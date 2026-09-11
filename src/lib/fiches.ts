@@ -120,20 +120,72 @@ export function normaliser(texte: string): string {
     .trim();
 }
 
-const champsCherchables = (f: Fiche) =>
-  [f.titre, f.sous_titre, f.lieu, f.ville, f.avis, ...f.tags].filter(Boolean).join(" ");
+const fmtDateLongue = new Intl.DateTimeFormat("fr-FR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+/**
+ * Toutes les écritures d'une date sous lesquelles on peut la chercher :
+ * « 2025-01-16 » pour le format ISO et le 16/01/2025, et « jeudi 16 janvier
+ * 2025 » pour chercher par mois, par jour de semaine ou en toutes lettres.
+ */
+function datesCherchables(date: string | null, heure: string | null): string {
+  if (!date) return "";
+  const jour = new Date(`${date}T12:00:00`);
+  const enLettres = Number.isNaN(jour.getTime()) ? "" : fmtDateLongue.format(jour);
+  const hhmm = heure ? heure.slice(0, 5) : "";
+  // « 20h30 » en plus de « 20:30 », parce que c'est comme ça qu'on l'écrit.
+  return [date, enLettres, hhmm, hhmm.replace(":", "h")].join(" ");
+}
+
+function champsCherchables(f: Fiche, nomRubrique: string | undefined): string {
+  return [
+    f.titre,
+    f.sous_titre,
+    f.lieu,
+    f.ville,
+    f.avis,
+    nomRubrique,
+    LIBELLE_STATUT[f.statut],
+    datesCherchables(f.date, f.heure),
+    ...f.tags,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
 
 /**
  * Recherche tous-mots : chaque mot de la requête doit apparaître quelque part
- * dans la fiche. Le jeu de données tient en mémoire, donc on filtre côté client
- * — la recherche reste instantanée et fonctionne hors ligne.
+ * dans la fiche — titre, sous-titre, impressions, tags, lieu, ville, rubrique,
+ * statut ou date. Chercher « cirque 2026 » ou « grand r janvier » fonctionne
+ * donc sans syntaxe particulière, et « ka » retrouve « KA-IN » : on cherche
+ * bien des fragments, pas des mots entiers.
+ *
+ * Le jeu de données tient en mémoire, donc on filtre côté client : la recherche
+ * est instantanée et fonctionne hors ligne.
  */
-export function chercher(fiches: Fiche[], requete: string): Fiche[] {
+export function chercher(fiches: Fiche[], requete: string, rubriques: Rubrique[] = []): Fiche[] {
   const mots = normaliser(requete).split(" ").filter(Boolean);
   if (mots.length === 0) return fiches;
+
+  const tests = mots.map((mot) => {
+    if (/^\d+$/.test(mot)) {
+      // Un nombre doit correspondre à un mot entier : sinon chercher « 02 »
+      // ramènerait tout ce qui contient « 2026 », et une date précise ne
+      // filtrerait plus rien.
+      const entier = new RegExp(`(?:^| )${mot}(?: |$)`);
+      return (foin: string) => entier.test(foin);
+    }
+    return (foin: string) => foin.includes(mot);
+  });
+
+  const nomParId = new Map(rubriques.map((r) => [r.id, r.nom]));
   return fiches.filter((f) => {
-    const foin = normaliser(champsCherchables(f));
-    return mots.every((mot) => foin.includes(mot));
+    const foin = normaliser(champsCherchables(f, nomParId.get(f.rubrique_id)));
+    return tests.every((test) => test(foin));
   });
 }
 

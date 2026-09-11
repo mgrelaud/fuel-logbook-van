@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="o" x1="0.15" y1="0" x2="0.75" y2="1">
+      <stop offset="0" stop-color="#FB9C4B"/>
+      <stop offset="1" stop-color="#E0631C"/>
+    </linearGradient>
+    <clipPath id="corps">
+      <rect x="150" y="156" width="268" height="206" rx="42"/>
+    </clipPath>
+  </defs>
+
+  <rect width="512" height="512" fill="#101012"/>
+
+  <!-- poignée de manutention, posée sur le dessus -->
+  <rect x="236" y="122" width="96" height="40" rx="20" fill="url(#o)"/>
+  <rect x="256" y="132" width="56" height="14" rx="7" fill="#101012" opacity="0.45"/>
+
+  <!-- balise acoustique, cylindre sanglé sur le flanc -->
+  <rect x="72" y="212" width="112" height="94" rx="34" fill="url(#o)"/>
+  <g fill="#101012" opacity="0.3">
+    <rect x="104" y="212" width="11" height="94"/>
+    <rect x="140" y="212" width="11" height="94"/>
+  </g>
+
+  <!-- corps de l'enregistreur -->
+  <rect x="150" y="156" width="268" height="206" rx="42" fill="url(#o)"/>
+
+  <!-- bandes réfléchissantes -->
+  <g clip-path="url(#corps)" fill="#F7F3EC">
+    <rect x="196" y="120" width="40" height="290" transform="rotate(20 216 259)"/>
+    <rect x="282" y="120" width="40" height="290" transform="rotate(20 302 259)"/>
+  </g>
+
+  <!-- pieds -->
+  <g fill="url(#o)">
+    <rect x="184" y="362" width="76" height="28" rx="12"/>
+    <rect x="308" y="362" width="76" height="28" rx="12"/>
+  </g>
+</svg>

@@ -33,6 +33,26 @@ vivre.
 | `/carburant` | Le module de consommation du camping-car (table `pleins`, inchangé) |
 | `/reglages` | Rubriques (créer, modifier, supprimer), import d'origine, export CSV, déconnexion |
 
+Dans les listes, **un glissé vers la gauche découvre la suppression**. Deux
+gestes délibérés sont nécessaires — glisser, puis appuyer — pour qu'un frôlement
+dans le train ne fasse pas disparaître un souvenir. Un glissé vers la droite,
+ou un appui sur la carte, referme.
+
+## Recherche
+
+Un seul champ, sans syntaxe à retenir : chaque mot tapé doit se retrouver
+quelque part dans la fiche — **titre, sous-titre, impressions, tags, lieu,
+ville, rubrique, statut ou date**. « cirque 2027 », « grand r janvier » ou
+« intéressait ml » fonctionnent donc tels quels, et « ka » retrouve « KA-IN » :
+on cherche des fragments, pas des mots entiers.
+
+Deux détails qui comptent :
+
+- les **dates** se cherchent sous toutes leurs écritures — `2026-02-10`,
+  `10/02/2026`, « février », « mardi », « 20h30 » ;
+- un terme **purement numérique** doit correspondre à un mot entier, sinon
+  chercher « 02 » ramènerait tout ce qui contient « 2026 ».
+
 La recherche est faite côté client sur l'ensemble des fiches : elle est
 instantanée, insensible aux accents et à la casse, et fonctionne hors ligne.
 
@@ -49,6 +69,10 @@ instantanée, insensible aux accents et à la casse, et fonctionne hors ligne.
 
 Manifeste complet, service worker Workbox, installable depuis Safari iOS
 (« Sur l'écran d'accueil »), consultable hors ligne, safe areas respectées.
+
+L'icône est un enregistreur de vol — orange, comme les vraies boîtes noires.
+La source est `public/icons/boite-noire.svg` ; les PNG (512, 192, 180, 64) en
+sont rendus avec `qlmanage -t -s <taille> -o <dossier> boite-noire.svg`.
 
 Le service worker est écrit dans `.output/public` (`outDir` dans
 `vite.config.ts`) : c'est le répertoire que nitro sert réellement. Sans cette
