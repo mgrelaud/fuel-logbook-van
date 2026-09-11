@@ -104,7 +104,6 @@
   --sidebar-ring: oklch(0.72 0.19 48);
 }
 
-
 @layer base {
   * {
     border-color: var(--color-border);
@@ -147,4 +146,23 @@
 @utility num {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+}
+
+@utility saisie {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-secondary);
+  padding: 0.875rem 1rem;
+  font-size: 1rem;
+  color: var(--color-foreground);
+  outline: none;
+
+  &:focus {
+    border-color: color-mix(in oklab, var(--color-primary) 60%, transparent);
+  }
+
+  &::placeholder {
+    color: var(--color-muted-foreground);
+  }
 }

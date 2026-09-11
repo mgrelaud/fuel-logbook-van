@@ -19,12 +19,16 @@ export default defineConfig({
         registerType: "autoUpdate",
         injectRegister: null,
         filename: "sw.js",
+        // TanStack Start + nitro servent le client depuis .output/public ; sans
+        // cette ligne le service worker était écrit dans dist/ et ne partait
+        // jamais en production — l'application n'était donc pas installable.
+        outDir: ".output/public",
         devOptions: { enabled: false },
         includeAssets: ["favicon.png", "icons/apple-touch-icon.png"],
         manifest: {
-          name: "Conso CC",
-          short_name: "Conso CC",
-          description: "Suivi de consommation de carburant pour camping-car",
+          name: "Boîte noire",
+          short_name: "Boîte noire",
+          description: "Historique personnel : concerts, spectacles, et tout ce qu'on y ajoute.",
           lang: "fr",
           start_url: "/",
           scope: "/",

@@ -14,6 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      fiches: {
+        Row: {
+          avis: string | null
+          created_at: string
+          date: string | null
+          extra: Json
+          heure: string | null
+          id: string
+          lieu: string | null
+          note: number | null
+          places: number | null
+          prix: number | null
+          rubrique_id: string
+          source: string | null
+          sous_titre: string | null
+          statut: string
+          tags: string[]
+          titre: string
+          updated_at: string
+          user_id: string
+          ville: string | null
+        }
+        Insert: {
+          avis?: string | null
+          created_at?: string
+          date?: string | null
+          extra?: Json
+          heure?: string | null
+          id?: string
+          lieu?: string | null
+          note?: number | null
+          places?: number | null
+          prix?: number | null
+          rubrique_id: string
+          source?: string | null
+          sous_titre?: string | null
+          statut?: string
+          tags?: string[]
+          titre: string
+          updated_at?: string
+          user_id: string
+          ville?: string | null
+        }
+        Update: {
+          avis?: string | null
+          created_at?: string
+          date?: string | null
+          extra?: Json
+          heure?: string | null
+          id?: string
+          lieu?: string | null
+          note?: number | null
+          places?: number | null
+          prix?: number | null
+          rubrique_id?: string
+          source?: string | null
+          sous_titre?: string | null
+          statut?: string
+          tags?: string[]
+          titre?: string
+          updated_at?: string
+          user_id?: string
+          ville?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiches_rubrique_id_fkey"
+            columns: ["rubrique_id"]
+            isOneToOne: false
+            referencedRelation: "rubriques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pleins: {
         Row: {
           cout: number | null
@@ -40,6 +114,39 @@ export type Database = {
           id?: string
           km?: number | null
           litres?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rubriques: {
+        Row: {
+          couleur: string
+          created_at: string
+          icone: string
+          id: string
+          nom: string
+          ordre: number
+          slug: string
+          user_id: string
+        }
+        Insert: {
+          couleur?: string
+          created_at?: string
+          icone?: string
+          id?: string
+          nom: string
+          ordre?: number
+          slug: string
+          user_id: string
+        }
+        Update: {
+          couleur?: string
+          created_at?: string
+          icone?: string
+          id?: string
+          nom?: string
+          ordre?: number
+          slug?: string
           user_id?: string
         }
         Relationships: []
