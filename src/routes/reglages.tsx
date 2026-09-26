@@ -198,8 +198,8 @@ function Reglages() {
           <div>
             <p className="font-semibold">Import d'origine</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {NOMBRE_FICHES_INITIALES} fiches : billetterie du Quai M (2022 → 2027) et saisons
-              24-25, 25-26 et 26-27 du Grand R. Relancer l'import n'ajoute que ce qui manque.
+              {NOMBRE_FICHES_INITIALES} fiches : billetterie du Quai M (2022 → 2027) et Grand R de
+              2017 à 2027. Relancer l'import n'ajoute que ce qui manque.
             </p>
           </div>
           <button

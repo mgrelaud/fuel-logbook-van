@@ -80,12 +80,15 @@ option il atterrissait dans `dist/` et ne partait jamais en production.
 
 ## Import d'origine
 
-`src/data/import-initial.ts` contient 156 fiches reprises de :
+`src/data/import-initial.ts` contient 183 fiches reprises de :
 
 - la **billetterie du Quai M** — 34 concerts de 2022 à 2027, avec le tarif, la
   salle, le nombre de places et le scan à l'entrée ;
 - les **classeurs du Grand R** — saisons 24-25, 25-26 et 26-27, dont les
-  spectacles réellement pris, les hésitations et les commentaires de l'époque.
+  spectacles réellement pris, les hésitations et les commentaires de l'époque ;
+- l'**historique de billetterie du Grand R** (mail du 22/09/2026) — 27
+  spectacles des saisons 17-18, 19-20, 22-23 et 23-24, avec le placement, et
+  cinq corrections de 25-26 (spectacles finalement pris, dates exactes).
 
 L'import se déclenche depuis `/reglages`. Il est **idempotent** : la clé `source`
 de chaque fiche est unique par utilisateur, donc le relancer n'ajoute que ce qui
