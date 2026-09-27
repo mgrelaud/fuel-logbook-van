@@ -12,7 +12,7 @@ export function ConsoChart({ pleins }: { pleins: Plein[] }) {
   if (data.length < 2) {
     return (
       <div className="card-surface p-5 text-sm text-muted-foreground">
-        Ajoutez au moins deux pleins avec distance pour voir l'évolution.
+        Il faut au moins deux consommations calculées pour voir l'évolution.
       </div>
     );
   }

@@ -30,13 +30,29 @@ vivre.
 | --- | --- |
 | `/` | Accueil : recherche globale, compteurs, tuiles de rubriques, ce qui arrive, derniers vécus |
 | `/r/$slug` | Une rubrique : recherche, filtres par statut et par tag, tri, liste groupée par année |
-| `/carburant` | Le module de consommation du camping-car (table `pleins`, inchangé) |
+| `/carburant` | Le module de consommation du camping-car (table `pleins`) |
 | `/reglages` | Rubriques (créer, modifier, supprimer), import d'origine, export CSV, déconnexion |
 
 Dans les listes, **un glissé vers la gauche découvre la suppression**. Deux
 gestes délibérés sont nécessaires — glisser, puis appuyer — pour qu'un frôlement
 dans le train ne fasse pas disparaître un souvenir. Un glissé vers la droite,
 ou un appui sur la carte, referme.
+
+## Carburant
+
+La consommation se calcule au plein complet : les litres versés depuis le
+dernier plein complet, divisés par la distance parcourue entre les deux.
+
+On saisit à chaque plein complet le **relevé du compteur kilométrique total**,
+et la distance d'un bloc est l'écart entre deux relevés. Un plein sans relevé
+est partiel : ses litres comptent au prochain plein qui en a un.
+
+Le compteur total a remplacé le totaliseur partiel (colonne `km`) après une
+coupure de batterie qui avait remis ce dernier à zéro et fait perdre la
+distance en cours. Les pleins d'avant gardent leur `km` et restent calculés
+comme avant. Le premier relevé sert de **point de départ** : la distance qui y
+mène est inconnue, donc ce bloc est clos sans consommation et ses litres
+sortent de la moyenne.
 
 ## Recherche
 

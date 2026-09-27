@@ -39,7 +39,7 @@ function Carburant() {
     queryFn: async (): Promise<Plein[]> => {
       const { data, error } = await supabase
         .from("pleins")
-        .select("id,date,litres,km,cout,created_at")
+        .select("id,date,litres,km,compteur,cout,created_at")
         .order("date", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -82,7 +82,7 @@ function Carburant() {
   });
 
   const totaux = computeTotaux(pleins);
-  const blocsClos = computeBlocs(pleins).filter((b) => b.cloture);
+  const blocsClos = computeBlocs(pleins).filter((b) => b.conso != null);
   const dernierBloc = blocsClos[blocsClos.length - 1];
   const consoDernier = dernierBloc?.conso ?? null;
   const delta =
@@ -122,7 +122,7 @@ function Carburant() {
 
       {totaux.litresEnAttente > 0 && (
         <p className="num mt-2 text-center text-xs text-muted-foreground">
-          {nf(totaux.litresEnAttente, 1)} L en attente de distance
+          {nf(totaux.litresEnAttente, 1)} L en attente du prochain relevé
         </p>
       )}
 
@@ -197,6 +197,7 @@ function Carburant() {
       <PleinSheet
         open={sheetOpen}
         initial={editing}
+        pleins={pleins}
         saving={save.isPending || remove.isPending}
         onClose={() => {
           setSheetOpen(false);

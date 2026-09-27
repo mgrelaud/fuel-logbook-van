@@ -90,6 +90,7 @@ export type Database = {
       }
       pleins: {
         Row: {
+          compteur: number | null
           cout: number | null
           created_at: string
           date: string
@@ -99,6 +100,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          compteur?: number | null
           cout?: number | null
           created_at?: string
           date?: string
@@ -108,6 +110,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          compteur?: number | null
           cout?: number | null
           created_at?: string
           date?: string

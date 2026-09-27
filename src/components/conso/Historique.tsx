@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
-import { computeBlocs, formatDate, nf, nf0, type Plein } from "@/lib/conso";
+import { computeBlocs, estCloturant, formatDate, nf, nf0, type Plein } from "@/lib/conso";
 
 export function Historique({
   pleins,
@@ -33,7 +33,7 @@ export function Historique({
           <div
             key={bloc.pleins[0]?.id ?? i}
             className={`card-surface overflow-hidden ${
-              bloc.cloture ? "border-l-4 border-l-primary/60" : "border-l-4 border-l-muted"
+              bloc.conso != null ? "border-l-4 border-l-primary/60" : "border-l-4 border-l-muted"
             }`}
           >
             {multi && (
@@ -42,13 +42,19 @@ export function Historique({
                   Bloc de {bloc.pleins.length} pleins · {nf(bloc.litres, 1)} L
                   {bloc.km != null ? ` · ${nf0(bloc.km)} km` : ""}
                 </span>
-                <span>{bloc.cloture ? `${nf(bloc.conso ?? 0)} L/100` : "en attente"}</span>
+                <span>
+                  {bloc.conso != null
+                    ? `${nf(bloc.conso)} L/100`
+                    : bloc.depart
+                      ? "distance inconnue"
+                      : "en attente"}
+                </span>
               </div>
             )}
 
             <ul className="divide-y divide-border">
               {lignes.map((p) => {
-                const cloture = p.km != null && Number(p.km) > 0;
+                const cloture = estCloturant(bloc, p);
                 const open = openId === p.id;
                 return (
                   <li key={p.id} className="relative">
@@ -66,10 +72,17 @@ export function Historique({
                       className="flex w-full items-center gap-3 px-4 py-3 text-left"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{formatDate(p.date)}</p>
+                        <p className="text-sm font-medium">
+                          {formatDate(p.date)}
+                          {p.compteur != null && (
+                            <span className="num font-normal text-muted-foreground">
+                              {` · ${nf0(Number(p.compteur))} km`}
+                            </span>
+                          )}
+                        </p>
                         <p className="num mt-0.5 text-xs text-muted-foreground">
                           {nf(Number(p.litres), 1)} L
-                          {cloture ? ` · ${nf0(Number(p.km))} km` : ""}
+                          {cloture && bloc.km != null ? ` · +${nf0(bloc.km)} km` : ""}
                           {p.cout != null ? ` · ${nf(Number(p.cout))} €` : ""}
                         </p>
                       </div>
@@ -82,7 +95,7 @@ export function Historique({
                         </>
                       ) : (
                         <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] text-muted-foreground">
-                          intermédiaire
+                          {cloture && bloc.depart ? "départ compteur" : "intermédiaire"}
                         </span>
                       )}
                     </button>

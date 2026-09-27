@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Trash2, X } from "lucide-react";
-import { litresPer100, nf, parseNumber, type Plein } from "@/lib/conso";
+import { blocDe, formatDate, nf, nf0, parseNumber, relevesAutour, type Plein } from "@/lib/conso";
 
-export type PleinInput = { date: string; litres: number; km: number | null; cout: number | null };
+export type PleinInput = {
+  date: string;
+  litres: number;
+  km: number | null;
+  compteur: number | null;
+  cout: number | null;
+};
 
 export function PleinSheet({
   open,
   initial,
+  pleins,
   onClose,
   onSubmit,
   onDelete,
@@ -14,6 +21,7 @@ export function PleinSheet({
 }: {
   open: boolean;
   initial: Plein | null;
+  pleins: Plein[];
   onClose: () => void;
   onSubmit: (values: PleinInput) => void;
   onDelete?: (p: Plein) => void;
@@ -23,10 +31,13 @@ export function PleinSheet({
   const [date, setDate] = useState(today);
   const [litres, setLitres] = useState("");
   const [km, setKm] = useState("");
+  const [compteur, setCompteur] = useState("");
   const [cout, setCout] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [confirmSuppr, setConfirmSuppr] = useState(false);
   const litresRef = useRef<HTMLInputElement>(null);
+  // Horodatage d'un plein en cours de création : il se range après ceux du même jour.
+  const creeLe = useRef(new Date().toISOString());
 
   useEffect(() => {
     if (!open) return;
@@ -35,6 +46,8 @@ export function PleinSheet({
     setDate(initial?.date ?? today);
     setLitres(initial ? String(initial.litres) : "");
     setKm(initial?.km != null ? String(initial.km) : "");
+    setCompteur(initial?.compteur != null ? String(initial.compteur) : "");
+    creeLe.current = new Date().toISOString();
     setCout(initial?.cout != null ? String(initial.cout) : "");
     const t = setTimeout(() => litresRef.current?.focus(), 120);
     return () => clearTimeout(t);
@@ -43,11 +56,29 @@ export function PleinSheet({
 
   if (!open) return null;
 
+  // Un plein saisi avant le compteur garde sa distance partielle, modifiable.
+  const ancien = initial != null && initial.compteur == null && initial.km != null;
+
   const l = parseNumber(litres);
-  const k = km.trim() === "" ? null : parseNumber(km);
+  const k = ancien && km.trim() !== "" ? parseNumber(km) : null;
+  const r = compteur.trim() === "" ? null : parseNumber(compteur.replace(/\s/g, ""));
   const c = cout.trim() === "" ? null : parseNumber(cout);
   const valide = Number.isFinite(l) && l > 0;
-  const conso = valide && k !== null && Number.isFinite(k) && k > 0 ? litresPer100(l, k) : null;
+
+  const candidat: Plein = {
+    id: initial?.id ?? "nouveau",
+    date,
+    litres: valide ? l : 0,
+    km: k !== null && Number.isFinite(k) ? k : null,
+    compteur: r !== null && Number.isFinite(r) ? r : null,
+    cout: c,
+    created_at: initial?.created_at ?? creeLe.current,
+  };
+  const { avant, apres } = relevesAutour(pleins, candidat);
+  const releveAvant = avant?.compteur != null ? Number(avant.compteur) : null;
+  const releveApres = apres?.compteur != null ? Number(apres.compteur) : null;
+  const bloc = valide ? blocDe(pleins, candidat) : undefined;
+  const conso = bloc?.cloture ? bloc.conso : null;
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,12 +90,28 @@ export function PleinSheet({
       setErreur("La distance doit être supérieure à 0, ou laissée vide.");
       return;
     }
+    if (r !== null && (!Number.isFinite(r) || r < 0)) {
+      setErreur("Le compteur doit être un nombre de kilomètres, ou laissé vide.");
+      return;
+    }
+    if (r !== null && releveAvant !== null && r <= releveAvant) {
+      setErreur(
+        `Le compteur doit dépasser le relevé précédent (${nf0(releveAvant)} km le ${formatDate(avant!.date)}).`,
+      );
+      return;
+    }
+    if (r !== null && releveApres !== null && r >= releveApres) {
+      setErreur(
+        `Le compteur doit rester sous le relevé suivant (${nf0(releveApres)} km le ${formatDate(apres!.date)}).`,
+      );
+      return;
+    }
     if (c !== null && (!Number.isFinite(c) || c < 0)) {
       setErreur("Le coût doit être un montant valide en euros.");
       return;
     }
     setErreur(null);
-    onSubmit({ date, litres: l, km: k, cout: c });
+    onSubmit({ date, litres: l, km: k, compteur: r, cout: c });
   }
 
   return (
@@ -105,15 +152,35 @@ export function PleinSheet({
             />
           </Field>
 
-          <Field label="Km depuis le dernier plein avec distance (optionnel)" suffix="km">
+          <Field
+            label="Compteur kilométrique (si plein complet)"
+            suffix="km"
+            aide={
+              releveAvant !== null
+                ? `Dernier relevé : ${nf0(releveAvant)} km le ${formatDate(avant!.date)}`
+                : "Premier relevé : il servira de point de départ."
+            }
+          >
             <input
-              value={km}
-              onChange={(e) => setKm(e.target.value)}
-              inputMode="decimal"
-              placeholder="—"
+              value={compteur}
+              onChange={(e) => setCompteur(e.target.value)}
+              inputMode="numeric"
+              placeholder={releveAvant !== null ? nf0(releveAvant) : "—"}
               className="num w-full bg-transparent text-3xl font-semibold outline-none placeholder:text-muted-foreground/40"
             />
           </Field>
+
+          {ancien && (
+            <Field label="Distance partielle (ancienne saisie)" suffix="km">
+              <input
+                value={km}
+                onChange={(e) => setKm(e.target.value)}
+                inputMode="decimal"
+                placeholder="—"
+                className="num w-full bg-transparent text-2xl font-semibold outline-none placeholder:text-muted-foreground/40"
+              />
+            </Field>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Coût (optionnel)" suffix="€">
@@ -137,15 +204,21 @@ export function PleinSheet({
         </div>
 
         <div className="mt-4 flex min-h-[3.25rem] items-center justify-between rounded-2xl bg-secondary px-4 py-3">
-          {conso ? (
+          {conso != null && bloc?.km != null ? (
             <>
-              <span className="text-sm text-muted-foreground">Consommation de ce plein</span>
+              <span className="text-sm text-muted-foreground">
+                {nf0(bloc.km)} km
+                {bloc.pleins.length > 1 ? ` · ${bloc.pleins.length} pleins` : ""}
+              </span>
               <span className="num text-xl font-bold text-primary">{nf(conso)} L/100 km</span>
             </>
+          ) : bloc?.depart ? (
+            <span className="text-sm text-muted-foreground">
+              Point de départ du compteur : la consommation se calculera au prochain relevé.
+            </span>
           ) : (
             <span className="text-sm text-muted-foreground">
-              Sans distance : plein intermédiaire, ses litres seront comptés au prochain plein avec
-              distance.
+              Sans relevé : plein partiel, ses litres compteront au prochain plein avec relevé.
             </span>
           )}
         </div>
@@ -153,7 +226,9 @@ export function PleinSheet({
         {valide && c !== null && Number.isFinite(c) && c > 0 && (
           <div className="mt-2 flex justify-between px-4 text-sm text-muted-foreground">
             <span>{nf(c / l, 3)} €/L</span>
-            {conso && k ? <span>{nf((c / k) * 100)} € /100 km</span> : null}
+            {conso != null && bloc?.km ? (
+              <span>{nf((bloc.cout / bloc.km) * 100)} € /100 km</span>
+            ) : null}
           </div>
         )}
 
@@ -215,10 +290,12 @@ export function PleinSheet({
 function Field({
   label,
   suffix,
+  aide,
   children,
 }: {
   label: string;
   suffix?: string;
+  aide?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -230,6 +307,7 @@ function Field({
         {children}
         {suffix && <span className="text-base text-muted-foreground">{suffix}</span>}
       </div>
+      {aide && <p className="num mt-1 text-xs text-muted-foreground">{aide}</p>}
     </label>
   );
 }
