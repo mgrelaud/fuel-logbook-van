@@ -53,11 +53,14 @@ function Reglages() {
     onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: CLE_RUBRIQUES });
       void qc.invalidateQueries({ queryKey: CLE_FICHES });
-      toast.success(
-        r.fichesAjoutees > 0
-          ? `${r.fichesAjoutees} fiche${r.fichesAjoutees > 1 ? "s" : ""} importée${r.fichesAjoutees > 1 ? "s" : ""}.`
-          : "Tout était déjà importé.",
-      );
+      const s = (n: number) => (n > 1 ? "s" : "");
+      const bilan = [
+        r.fichesAjoutees > 0 &&
+          `${r.fichesAjoutees} fiche${s(r.fichesAjoutees)} importée${s(r.fichesAjoutees)}`,
+        r.fichesCorrigees > 0 &&
+          `${r.fichesCorrigees} fiche${s(r.fichesCorrigees)} corrigée${s(r.fichesCorrigees)}`,
+      ].filter(Boolean);
+      toast.success(bilan.length > 0 ? `${bilan.join(", ")}.` : "Tout était déjà importé.");
     },
     onError: () => toast.error("Import impossible. Réessayez."),
   });

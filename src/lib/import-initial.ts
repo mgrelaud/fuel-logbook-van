@@ -3,16 +3,20 @@
  *
  * L'opération est idempotente : la clé `source` de chaque fiche est unique par
  * utilisateur, donc relancer l'import n'ajoute que ce qui manque et ne touche
- * jamais à ce qui a déjà été corrigé dans l'application.
+ * jamais à ce qui a déjà été corrigé dans l'application. Les rectifications
+ * d'une fiche d'origine passent par `CORRECTIONS`, qui ne touchent une fiche
+ * que si elle est restée telle que l'import l'avait créée.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { idUtilisateur } from "@/lib/api";
 import { FICHES_INITIALES, RUBRIQUES_INITIALES } from "@/data/import-initial";
+import { CORRECTIONS, type Correction } from "@/data/corrections";
 
 export type ResultatImport = {
   rubriquesCreees: number;
   fichesAjoutees: number;
   fichesIgnorees: number;
+  fichesCorrigees: number;
 };
 
 const PAQUET = 100;
@@ -81,7 +85,62 @@ export async function importerDonneesInitiales(): Promise<ResultatImport> {
     rubriquesCreees: manquantes.length,
     fichesAjoutees: lignes.length,
     fichesIgnorees: FICHES_INITIALES.length - lignes.length,
+    fichesCorrigees: await appliquerCorrections(),
   };
+}
+
+type FicheCorrigeable = {
+  id: string;
+  source: string | null;
+  statut: string;
+  date: string | null;
+  heure: string | null;
+  extra: unknown;
+};
+
+/** Une fiche est corrigeable tant qu'elle a encore toutes les valeurs de `si`. */
+function estCorrigeable(f: FicheCorrigeable, c: Correction): boolean {
+  const { statut, date, heure } = c.si;
+  if (statut !== undefined && f.statut !== statut) return false;
+  if (date !== undefined && f.date !== date) return false;
+  // Postgres rend une colonne `time` sous la forme « 19:00:00 ».
+  if (heure !== undefined && f.heure?.slice(0, 5) !== heure) return false;
+  return true;
+}
+
+async function appliquerCorrections(): Promise<number> {
+  const { data, error } = await supabase
+    .from("fiches")
+    .select("id,source,statut,date,heure,extra")
+    .in(
+      "source",
+      CORRECTIONS.map((c) => c.source),
+    );
+  if (error) throw error;
+
+  const parSource = new Map((data ?? []).map((f) => [f.source, f as FicheCorrigeable]));
+  let corrigees = 0;
+
+  for (const c of CORRECTIONS) {
+    const fiche = parSource.get(c.source);
+    if (!fiche || !estCorrigeable(fiche, c)) continue;
+
+    const extraActuel =
+      fiche.extra && typeof fiche.extra === "object" && !Array.isArray(fiche.extra)
+        ? (fiche.extra as Record<string, unknown>)
+        : {};
+    const { error: erreurMaj } = await supabase
+      .from("fiches")
+      .update({
+        ...c.maj,
+        ...(c.extra ? { extra: { ...extraActuel, ...c.extra } as Record<string, never> } : {}),
+      })
+      .eq("id", fiche.id);
+    if (erreurMaj) throw erreurMaj;
+    corrigees += 1;
+  }
+
+  return corrigees;
 }
 
 export const NOMBRE_FICHES_INITIALES = FICHES_INITIALES.length;

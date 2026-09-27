@@ -94,6 +94,13 @@ L'import se déclenche depuis `/reglages`. Il est **idempotent** : la clé `sour
 de chaque fiche est unique par utilisateur, donc le relancer n'ajoute que ce qui
 manque et ne touche jamais à ce qui a été corrigé dans l'application.
 
+Pour rectifier après coup une fiche déjà importée, on ajoute une entrée à
+`src/data/corrections.ts` plutôt que de modifier `import-initial.ts` (qui ne
+vaut que pour un import neuf). Chaque correction est jouée au prochain import,
+mais seulement si la fiche a encore ses valeurs d'origine (`si`) : une fiche
+retouchée dans l'application reste telle quelle, et une correction passée ne se
+rejoue pas.
+
 ## Développement
 
 ```sh
