@@ -104,7 +104,8 @@ option il atterrissait dans `dist/` et ne partait jamais en production.
   spectacles réellement pris, les hésitations et les commentaires de l'époque ;
 - l'**historique de billetterie du Grand R** (mail du 22/09/2026) — 27
   spectacles des saisons 17-18, 19-20, 22-23 et 23-24, avec le placement, et
-  cinq corrections de 25-26 (spectacles finalement pris, dates exactes).
+  cinq corrections de 25-26 (spectacles finalement pris, dates exactes) ;
+- les **réservations 26-27** — dix spectacles en « réservé », avec le placement.
 
 L'import se déclenche depuis `/reglages`. Il est **idempotent** : la clé `source`
 de chaque fiche est unique par utilisateur, donc le relancer n'ajoute que ce qui
