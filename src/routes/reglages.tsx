@@ -59,6 +59,8 @@ function Reglages() {
           `${r.fichesAjoutees} fiche${s(r.fichesAjoutees)} importée${s(r.fichesAjoutees)}`,
         r.fichesCorrigees > 0 &&
           `${r.fichesCorrigees} fiche${s(r.fichesCorrigees)} corrigée${s(r.fichesCorrigees)}`,
+        r.fichesRetirees > 0 &&
+          `${r.fichesRetirees} fiche${s(r.fichesRetirees)} retirée${s(r.fichesRetirees)}`,
       ].filter(Boolean);
       toast.success(bilan.length > 0 ? `${bilan.join(", ")}.` : "Tout était déjà importé.");
     },

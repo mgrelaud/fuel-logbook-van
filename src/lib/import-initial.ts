@@ -5,18 +5,20 @@
  * utilisateur, donc relancer l'import n'ajoute que ce qui manque et ne touche
  * jamais à ce qui a déjà été corrigé dans l'application. Les rectifications
  * d'une fiche d'origine passent par `CORRECTIONS`, qui ne touchent une fiche
- * que si elle est restée telle que l'import l'avait créée.
+ * que si elle est restée telle que l'import l'avait créée ; il en va de même
+ * des `SUPPRESSIONS`, les fiches d'origine retirées de la Boîte noire.
  */
 import { supabase } from "@/integrations/supabase/client";
 import { idUtilisateur } from "@/lib/api";
 import { FICHES_INITIALES, RUBRIQUES_INITIALES } from "@/data/import-initial";
-import { CORRECTIONS, type Correction } from "@/data/corrections";
+import { CORRECTIONS, SUPPRESSIONS, type Correction } from "@/data/corrections";
 
 export type ResultatImport = {
   rubriquesCreees: number;
   fichesAjoutees: number;
   fichesIgnorees: number;
   fichesCorrigees: number;
+  fichesRetirees: number;
 };
 
 const PAQUET = 100;
@@ -86,6 +88,7 @@ export async function importerDonneesInitiales(): Promise<ResultatImport> {
     fichesAjoutees: lignes.length,
     fichesIgnorees: FICHES_INITIALES.length - lignes.length,
     fichesCorrigees: await appliquerCorrections(),
+    fichesRetirees: await appliquerSuppressions(),
   };
 }
 
@@ -144,3 +147,18 @@ async function appliquerCorrections(): Promise<number> {
 }
 
 export const NOMBRE_FICHES_INITIALES = FICHES_INITIALES.length;
+
+async function appliquerSuppressions(): Promise<number> {
+  let retirees = 0;
+  for (const { statut, sources } of SUPPRESSIONS) {
+    const { data, error } = await supabase
+      .from("fiches")
+      .delete()
+      .in("source", sources)
+      .eq("statut", statut)
+      .select("id");
+    if (error) throw error;
+    retirees += data?.length ?? 0;
+  }
+  return retirees;
+}

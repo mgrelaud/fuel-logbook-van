@@ -96,12 +96,14 @@ option il atterrissait dans `dist/` et ne partait jamais en production.
 
 ## Import d'origine
 
-`src/data/import-initial.ts` contient 183 fiches reprises de :
+`src/data/import-initial.ts` contient 102 fiches, **uniquement ce qui a été vu
+ou réservé** — la Boîte noire sert à se souvenir, pas à tenir une liste
+d'envies. Elles viennent de :
 
-- la **billetterie du Quai M** — 34 concerts de 2022 à 2027, avec le tarif, la
+- la **billetterie du Quai M** — 33 concerts de 2022 à 2027, avec le tarif, la
   salle, le nombre de places et le scan à l'entrée ;
-- les **classeurs du Grand R** — saisons 24-25, 25-26 et 26-27, dont les
-  spectacles réellement pris, les hésitations et les commentaires de l'époque ;
+- les **classeurs du Grand R** — saisons 24-25, 25-26 et 26-27, pour les
+  spectacles réellement pris et les commentaires de l'époque ;
 - l'**historique de billetterie du Grand R** (mail du 22/09/2026) — 27
   spectacles des saisons 17-18, 19-20, 22-23 et 23-24, avec le placement, et
   cinq corrections de 25-26 (spectacles finalement pris, dates exactes) ;
@@ -117,6 +119,12 @@ vaut que pour un import neuf). Chaque correction est jouée au prochain import,
 mais seulement si la fiche a encore ses valeurs d'origine (`si`) : une fiche
 retouchée dans l'application reste telle quelle, et une correction passée ne se
 rejoue pas.
+
+`SUPPRESSIONS`, dans le même fichier, retire de la base les fiches d'origine
+qu'on ne veut plus : les 80 envies des classeurs 25-26 et 26-27 et le concert
+annulé du Quai M (purge du 27/09/2026). Même garde-fou : une fiche n'est
+supprimée que si elle a encore son statut d'origine, donc une envie passée en
+« réservé » ou « vu » dans l'application reste.
 
 ## Développement
 
