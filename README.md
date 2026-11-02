@@ -4,7 +4,8 @@ L'enregistreur de ce qu'on vit. Une PWA personnelle, mobile d'abord, où l'on
 garde l'historique de ses concerts, de ses spectacles — et de tout ce qu'on
 décidera d'y ajouter ensuite.
 
-**Application en ligne** : https://fuel-logbook-van.lovable.app
+**Application en ligne** : https://boite-noire.matthieu-grelaud.workers.dev (Cloudflare Workers + D1,
+derrière Cloudflare Access)
 
 ## Le principe
 
@@ -74,12 +75,14 @@ instantanée, insensible aux accents et à la casse, et fonctionne hors ligne.
 
 ## Sécurité
 
-- **Sign in with Apple comme unique méthode de connexion.** Aucun écran n'est
-  accessible sans session : tout passe par `PorteAuth`.
-- **Row Level Security** sur `rubriques`, `fiches` et `pleins` : chaque ligne est
-  rattachée à un `user_id` et les politiques n'autorisent que `auth.uid() =
-  user_id`. Même en parlant directement à l'API avec la clé publique, on ne voit
-  que ses propres données.
+- **Cloudflare Access** devant le Worker : seule l'adresse autorisée entre, après
+  un code reçu par email (session de 7 jours, partagée avec les autres applis de
+  l'équipe Access). Plus de compte Apple.
+- **Chaque fonction serveur revérifie** le JWT d'Access (`src/lib/acces.ts`,
+  `acces.server.ts`) : signature, émetteur et audience. Si Access était un jour
+  désactivé, les données resteraient fermées.
+- Une seule personne : plus de `user_id` ni de RLS, la base D1 n'est jamais
+  exposée directement au navigateur.
 
 ## PWA
 
@@ -109,8 +112,9 @@ d'envies. Elles viennent de :
   cinq corrections de 25-26 (spectacles finalement pris, dates exactes) ;
 - les **réservations 26-27** — dix spectacles en « réservé », avec le placement.
 
-L'import se déclenche depuis `/reglages`. Il est **idempotent** : la clé `source`
-de chaque fiche est unique par utilisateur, donc le relancer n'ajoute que ce qui
+L'import se déclenche depuis `/reglages` et s'exécute côté serveur : les données
+d'origine ne partent pas dans le code envoyé au navigateur. Il est **idempotent** : la clé `source`
+de chaque fiche est unique, donc le relancer n'ajoute que ce qui
 manque et ne touche jamais à ce qui a été corrigé dans l'application.
 
 Pour rectifier après coup une fiche déjà importée, on ajoute une entrée à
@@ -126,20 +130,37 @@ annulé du Quai M (purge du 27/09/2026). Même garde-fou : une fiche n'est
 supprimée que si elle a encore son statut d'origine, donc une envie passée en
 « réservé » ou « vu » dans l'application reste.
 
+## Données
+
+Base **D1** `boite-noire` (SQLite), schéma dans `migrations/`. Le navigateur
+n'y accède jamais : il appelle les fonctions serveur de `src/lib/donnees.ts`,
+qui passent par `src/lib/d1.server.ts`. `tags` et `extra` sont stockés en JSON
+texte ; dates et heures restent du texte ISO.
+
 ## Développement
+
+Les fonctions serveur ont besoin du runtime Workers (`cloudflare:workers`) :
+`npm run dev` affiche les écrans mais pas les données. Pour tester en entier :
 
 ```sh
 npm install
-npm run dev      # http://localhost:8080
+npx wrangler d1 migrations apply boite-noire --local --config wrangler.jsonc --persist-to .wrangler/state
 npm run build
-npm run lint
+npx wrangler dev --port 8788 --persist-to .wrangler/state --var DEV_USER_EMAIL:<adresse>
 ```
 
-Les migrations vivent dans `supabase/migrations/` et sont appliquées par Lovable
-Cloud lors de la synchronisation.
+Sans Access configuré, seul `localhost` passe, avec l'email de `DEV_USER_EMAIL`.
 
-## Lovable
+## Déployer
 
-Ce projet est connecté à [Lovable](https://lovable.dev/projects/28bab547-8d5e-4da5-9e2f-ebd6a606367d).
-Chaque changement poussé sur `main` y est synchronisé — garder la branche dans un
-état qui compile.
+```sh
+npx wrangler d1 migrations apply boite-noire --remote --config wrangler.jsonc   # si nouvelle migration
+npm run build
+npx wrangler deploy
+```
+
+`wrangler.jsonc` est fusionné par nitro dans la config générée
+(`.output/server/wrangler.json`), que `wrangler deploy` suit d'office.
+
+Jusqu'au 02/11/2026, l'application vivait sur Lovable (Lovable Cloud + connexion
+Apple) ; elle n'y est plus synchronisée.

@@ -1,1 +1,0 @@
-ALTER TABLE public.pleins ALTER COLUMN km DROP NOT NULL;

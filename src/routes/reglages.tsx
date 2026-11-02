@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { Icone, NOMS_ICONES } from "@/components/layout/Icone";
 import { PorteAuth } from "@/components/layout/PorteAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { URL_DECONNEXION } from "@/lib/acces";
 import {
   useEnregistrerRubrique,
   useFiches,
@@ -49,7 +49,7 @@ function Reglages() {
   const [aSupprimer, setASupprimer] = useState<string | null>(null);
 
   const importer = useMutation({
-    mutationFn: importerDonneesInitiales,
+    mutationFn: () => importerDonneesInitiales(),
     onSuccess: (r) => {
       void qc.invalidateQueries({ queryKey: CLE_RUBRIQUES });
       void qc.invalidateQueries({ queryKey: CLE_FICHES });
@@ -240,14 +240,14 @@ function Reglages() {
 
       <section className="mt-8">
         <button
-          onClick={() => void supabase.auth.signOut()}
+          onClick={() => window.location.assign(URL_DECONNEXION)}
           className="card-surface flex w-full items-center gap-3 p-4 text-left text-destructive"
         >
           <LogOut className="size-5" />
           <span className="font-semibold">Se déconnecter</span>
         </button>
         <p className="mt-4 px-1 text-center text-xs text-muted-foreground">
-          Boîte noire — accès réservé à votre compte Apple.
+          Boîte noire — accès réservé par Cloudflare Access.
         </p>
       </section>
     </main>

@@ -1,0 +1,22 @@
+// Boîte noire sur Cloudflare Workers. Nitro fusionne ce fichier dans la config
+// qu'il génère (.output/server/wrangler.json) : `npx wrangler deploy` après le build.
+// Pour les migrations D1, viser ce fichier : `--config wrangler.jsonc`.
+{
+  "name": "boite-noire",
+  "compatibility_date": "2026-09-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "boite-noire",
+      "database_id": "611fdc41-df2f-4418-afe2-4637cef2c005",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // Application Access du Worker (onglet Access > Application values)
+    "ACCESS_TEAM_DOMAIN": "matthieu-grelaud.cloudflareaccess.com",
+    "ACCESS_AUD": ""
+  },
+  "observability": { "enabled": true }
+}

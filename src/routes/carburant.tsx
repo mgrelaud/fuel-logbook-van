@@ -5,7 +5,7 @@ import { ArrowDown, ArrowLeft, ArrowUp, Download, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { PorteAuth } from "@/components/layout/PorteAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { enregistrerPlein, listerPleins, supprimerPlein } from "@/lib/donnees";
 import { computeBlocs, computeTotaux, downloadCsv, nf, nf0, type Plein } from "@/lib/conso";
 import { PleinSheet, type PleinInput } from "@/components/conso/PleinSheet";
 import { ConsoChart } from "@/components/conso/ConsoChart";
@@ -36,28 +36,12 @@ function Carburant() {
 
   const { data: pleins = [], isLoading } = useQuery({
     queryKey: ["pleins"],
-    queryFn: async (): Promise<Plein[]> => {
-      const { data, error } = await supabase
-        .from("pleins")
-        .select("id,date,litres,km,compteur,cout,created_at")
-        .order("date", { ascending: false })
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Plein[];
-    },
+    queryFn: (): Promise<Plein[]> => listerPleins(),
   });
 
   const save = useMutation({
-    mutationFn: async (values: PleinInput) => {
-      if (editing) {
-        const { error } = await supabase.from("pleins").update(values).eq("id", editing.id);
-        if (error) throw error;
-        return;
-      }
-      const { data: auth } = await supabase.auth.getUser();
-      const { error } = await supabase.from("pleins").insert({ ...values, user_id: auth.user!.id });
-      if (error) throw error;
-    },
+    mutationFn: (values: PleinInput) =>
+      enregistrerPlein({ data: { id: editing?.id, valeurs: values } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pleins"] });
       setSheetOpen(false);
@@ -68,10 +52,7 @@ function Carburant() {
   });
 
   const remove = useMutation({
-    mutationFn: async (p: Plein) => {
-      const { error } = await supabase.from("pleins").delete().eq("id", p.id);
-      if (error) throw error;
-    },
+    mutationFn: (p: Plein) => supprimerPlein({ data: p.id }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pleins"] });
       setSheetOpen(false);

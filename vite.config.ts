@@ -14,6 +14,10 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    // Module fourni par le runtime Workers (accès à D1) : il n'existe qu'à
+    // l'exécution, le bundler doit le laisser tel quel.
+    ssr: { external: ["cloudflare:workers"] },
+    build: { rollupOptions: { external: ["cloudflare:workers"] } },
     plugins: [
       VitePWA({
         registerType: "autoUpdate",
@@ -49,7 +53,8 @@ export default defineConfig({
         },
         workbox: {
           navigateFallback: "/",
-          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+          // /cdn-cgi/ : pages de Cloudflare Access (déconnexion, etc.)
+          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/cdn-cgi\//],
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
           runtimeCaching: [
             {
@@ -58,8 +63,12 @@ export default defineConfig({
               options: { cacheName: "html-nav" },
             },
             {
+              // Les fonctions serveur (/_serverFn/) portent les données : jamais en cache.
               urlPattern: ({ url, request }: { url: URL; request: Request }) =>
-                url.origin === self.location.origin && request.destination !== "document",
+                url.origin === self.location.origin &&
+                request.destination !== "document" &&
+                !url.pathname.startsWith("/_serverFn") &&
+                !url.pathname.startsWith("/cdn-cgi/"),
               handler: "CacheFirst",
               options: { cacheName: "assets" },
             },

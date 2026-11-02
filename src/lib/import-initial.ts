@@ -1,15 +1,20 @@
 /**
  * Import des données d'origine (billetterie Quai M + classeurs Le Grand R).
  *
- * L'opération est idempotente : la clé `source` de chaque fiche est unique par
- * utilisateur, donc relancer l'import n'ajoute que ce qui manque et ne touche
- * jamais à ce qui a déjà été corrigé dans l'application. Les rectifications
- * d'une fiche d'origine passent par `CORRECTIONS`, qui ne touchent une fiche
- * que si elle est restée telle que l'import l'avait créée ; il en va de même
- * des `SUPPRESSIONS`, les fiches d'origine retirées de la Boîte noire.
+ * L'opération est idempotente : la clé `source` de chaque fiche est unique, donc
+ * relancer l'import n'ajoute que ce qui manque et ne touche jamais à ce qui a
+ * déjà été corrigé dans l'application. Les rectifications d'une fiche d'origine
+ * passent par `CORRECTIONS`, qui ne touchent une fiche que si elle est restée
+ * telle que l'import l'avait créée ; il en va de même des `SUPPRESSIONS`, les
+ * fiches d'origine retirées de la Boîte noire.
+ *
+ * Tout se passe côté serveur : les données d'origine ne partent plus dans le
+ * code envoyé au navigateur.
  */
-import { supabase } from "@/integrations/supabase/client";
-import { idUtilisateur } from "@/lib/api";
+import { createServerFn } from "@tanstack/react-start";
+
+import { exigerAcces } from "@/lib/acces";
+import { db, instructionInsertion, mettreAJour } from "@/lib/d1.server";
 import { FICHES_INITIALES, RUBRIQUES_INITIALES } from "@/data/import-initial";
 import { CORRECTIONS, SUPPRESSIONS, type Correction } from "@/data/corrections";
 
@@ -21,76 +26,72 @@ export type ResultatImport = {
   fichesRetirees: number;
 };
 
+// D1 limite le nombre d'instructions par lot ; 100 reste très en dessous.
 const PAQUET = 100;
 
-export async function importerDonneesInitiales(): Promise<ResultatImport> {
-  const userId = await idUtilisateur();
+export const NOMBRE_FICHES_INITIALES = FICHES_INITIALES.length;
 
-  // 1. Les rubriques attendues, créées seulement si elles manquent.
-  const { data: existantes, error: erreurLecture } = await supabase
-    .from("rubriques")
-    .select("id,slug");
-  if (erreurLecture) throw erreurLecture;
+export const importerDonneesInitiales = createServerFn({ method: "POST" })
+  .middleware([exigerAcces])
+  .handler(async (): Promise<ResultatImport> => {
+    // 1. Les rubriques attendues, créées seulement si elles manquent.
+    const { results: existantes } = await db()
+      .prepare("SELECT id, slug FROM rubriques")
+      .all<{ id: string; slug: string }>();
+    const parSlug = new Map(existantes.map((r) => [r.slug, r.id]));
+    const manquantes = RUBRIQUES_INITIALES.filter((r) => !parSlug.has(r.slug));
 
-  const parSlug = new Map((existantes ?? []).map((r) => [r.slug, r.id]));
-  const manquantes = RUBRIQUES_INITIALES.filter((r) => !parSlug.has(r.slug));
+    if (manquantes.length > 0) {
+      const instructions = manquantes.map((r) => {
+        const id = crypto.randomUUID();
+        parSlug.set(r.slug, id);
+        return instructionInsertion("rubriques", { ...r }, id);
+      });
+      await db().batch(instructions);
+    }
 
-  if (manquantes.length > 0) {
-    const { data: creees, error } = await supabase
-      .from("rubriques")
-      .insert(manquantes.map((r) => ({ ...r, user_id: userId })))
-      .select("id,slug");
-    if (error) throw error;
-    for (const r of creees ?? []) parSlug.set(r.slug, r.id);
-  }
+    // 2. Les fiches déjà importées, repérées par leur clé d'origine.
+    const { results: dejaLa } = await db()
+      .prepare("SELECT source FROM fiches WHERE source IS NOT NULL")
+      .all<{ source: string }>();
+    const connues = new Set(dejaLa.map((f) => f.source));
+    const aInserer = FICHES_INITIALES.filter((f) => !connues.has(f.source));
 
-  // 2. Les fiches déjà importées, repérées par leur clé d'origine.
-  const { data: dejaLa, error: erreurSources } = await supabase
-    .from("fiches")
-    .select("source")
-    .not("source", "is", null);
-  if (erreurSources) throw erreurSources;
+    const lignes = aInserer.flatMap((f) => {
+      const rubriqueId = parSlug.get(f.rubrique);
+      if (!rubriqueId) return [];
+      return [
+        {
+          rubrique_id: rubriqueId,
+          titre: f.titre,
+          sous_titre: f.sous_titre ?? null,
+          date: f.date ?? null,
+          heure: f.heure ?? null,
+          lieu: f.lieu ?? null,
+          ville: f.ville ?? null,
+          statut: f.statut,
+          avis: f.avis ?? null,
+          prix: f.prix ?? null,
+          places: f.places ?? null,
+          tags: f.tags ?? [],
+          extra: f.extra ?? {},
+          source: f.source,
+        },
+      ];
+    });
 
-  const connues = new Set((dejaLa ?? []).map((f) => f.source));
-  const aInserer = FICHES_INITIALES.filter((f) => !connues.has(f.source));
+    for (let i = 0; i < lignes.length; i += PAQUET) {
+      await db().batch(lignes.slice(i, i + PAQUET).map((l) => instructionInsertion("fiches", l)));
+    }
 
-  const lignes = aInserer.flatMap((f) => {
-    const rubriqueId = parSlug.get(f.rubrique);
-    if (!rubriqueId) return [];
-    return [
-      {
-        user_id: userId,
-        rubrique_id: rubriqueId,
-        titre: f.titre,
-        sous_titre: f.sous_titre ?? null,
-        date: f.date ?? null,
-        heure: f.heure ?? null,
-        lieu: f.lieu ?? null,
-        ville: f.ville ?? null,
-        statut: f.statut,
-        avis: f.avis ?? null,
-        prix: f.prix ?? null,
-        places: f.places ?? null,
-        tags: f.tags ?? [],
-        extra: (f.extra ?? {}) as Record<string, never>,
-        source: f.source,
-      },
-    ];
+    return {
+      rubriquesCreees: manquantes.length,
+      fichesAjoutees: lignes.length,
+      fichesIgnorees: FICHES_INITIALES.length - lignes.length,
+      fichesCorrigees: await appliquerCorrections(),
+      fichesRetirees: await appliquerSuppressions(),
+    };
   });
-
-  for (let i = 0; i < lignes.length; i += PAQUET) {
-    const { error } = await supabase.from("fiches").insert(lignes.slice(i, i + PAQUET));
-    if (error) throw error;
-  }
-
-  return {
-    rubriquesCreees: manquantes.length,
-    fichesAjoutees: lignes.length,
-    fichesIgnorees: FICHES_INITIALES.length - lignes.length,
-    fichesCorrigees: await appliquerCorrections(),
-    fichesRetirees: await appliquerSuppressions(),
-  };
-}
 
 type FicheCorrigeable = {
   id: string;
@@ -98,7 +99,7 @@ type FicheCorrigeable = {
   statut: string;
   date: string | null;
   heure: string | null;
-  extra: unknown;
+  extra: string;
 };
 
 /** Une fiche est corrigeable tant qu'elle a encore toutes les valeurs de `si`. */
@@ -106,59 +107,53 @@ function estCorrigeable(f: FicheCorrigeable, c: Correction): boolean {
   const { statut, date, heure } = c.si;
   if (statut !== undefined && f.statut !== statut) return false;
   if (date !== undefined && f.date !== date) return false;
-  // Postgres rend une colonne `time` sous la forme « 19:00:00 ».
+  // Les heures reprises de Postgres sont au format « 19:00:00 ».
   if (heure !== undefined && f.heure?.slice(0, 5) !== heure) return false;
   return true;
 }
 
 async function appliquerCorrections(): Promise<number> {
-  const { data, error } = await supabase
-    .from("fiches")
-    .select("id,source,statut,date,heure,extra")
-    .in(
-      "source",
-      CORRECTIONS.map((c) => c.source),
-    );
-  if (error) throw error;
+  const sources = CORRECTIONS.map((c) => c.source);
+  const { results } = await db()
+    .prepare(
+      `SELECT id, source, statut, date, heure, extra FROM fiches
+       WHERE source IN (${sources.map(() => "?").join(", ")})`,
+    )
+    .bind(...sources)
+    .all<FicheCorrigeable>();
 
-  const parSource = new Map((data ?? []).map((f) => [f.source, f as FicheCorrigeable]));
+  const parSource = new Map(results.map((f) => [f.source, f]));
   let corrigees = 0;
 
   for (const c of CORRECTIONS) {
     const fiche = parSource.get(c.source);
     if (!fiche || !estCorrigeable(fiche, c)) continue;
 
+    const extraLu: unknown = JSON.parse(fiche.extra);
     const extraActuel =
-      fiche.extra && typeof fiche.extra === "object" && !Array.isArray(fiche.extra)
-        ? (fiche.extra as Record<string, unknown>)
+      extraLu && typeof extraLu === "object" && !Array.isArray(extraLu)
+        ? (extraLu as Record<string, unknown>)
         : {};
-    const { error: erreurMaj } = await supabase
-      .from("fiches")
-      .update({
-        ...c.maj,
-        ...(c.extra ? { extra: { ...extraActuel, ...c.extra } as Record<string, never> } : {}),
-      })
-      .eq("id", fiche.id);
-    if (erreurMaj) throw erreurMaj;
+    await mettreAJour("fiches", fiche.id, {
+      ...c.maj,
+      ...(c.extra ? { extra: { ...extraActuel, ...c.extra } } : {}),
+    });
     corrigees += 1;
   }
 
   return corrigees;
 }
 
-export const NOMBRE_FICHES_INITIALES = FICHES_INITIALES.length;
-
 async function appliquerSuppressions(): Promise<number> {
   let retirees = 0;
   for (const { statut, sources } of SUPPRESSIONS) {
-    const { data, error } = await supabase
-      .from("fiches")
-      .delete()
-      .in("source", sources)
-      .eq("statut", statut)
-      .select("id");
-    if (error) throw error;
-    retirees += data?.length ?? 0;
+    const { meta } = await db()
+      .prepare(
+        `DELETE FROM fiches WHERE statut = ? AND source IN (${sources.map(() => "?").join(", ")})`,
+      )
+      .bind(statut, ...sources)
+      .run();
+    retirees += meta.changes;
   }
   return retirees;
 }
