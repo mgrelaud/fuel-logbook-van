@@ -16,7 +16,7 @@
   "vars": {
     // Application Access du Worker (onglet Access > Application values)
     "ACCESS_TEAM_DOMAIN": "matthieu-grelaud.cloudflareaccess.com",
-    "ACCESS_AUD": ""
+    "ACCESS_AUD": "5c6ca3a4074f5fc1143715df0c90589077f51055f5973565dd83deedbc9d8e34"
   },
   "observability": { "enabled": true }
 }
